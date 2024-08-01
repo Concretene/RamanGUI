@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure 
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from scipy.signal import savgol_filter
@@ -10,8 +12,7 @@ from scipy.signal import find_peaks, peak_widths, peak_prominences
 import seaborn as sns
 import matplotlib.transforms as tr
 import re
-from PIL import Image
-from PIL import ImageTk
+from string import ascii_letters
 
 def labels_entry_canvas(window, canvas, label_name, x, y):
     """Create a label linked to a user entry window
@@ -177,9 +178,153 @@ def dataset_creation(path_file):
 
     return file_name, df_data
 
+def raman_spectre_analysis(file_name, df_data):
+    j = 0
+    count = 0
+    ratio_full = []
+    d_band = []
+    g_band = []
+
+    # Parameters for this case:
+    l = 1000000 # smoothness
+    p = 0.05 # asymmetry
+
+    # Parameters:
+    w = 5 # window (number of points)
+    order = 1 # polynomial order
+
+    ## Selection of width height
+    if re.search(r"\w\dMA",file_name):
+        width_height = 0.85
+    else:
+        width_height = 0.5
+
+    for i, value in enumerate(df_data['Wave']):
+        x_DB = []
+        y_DB = []
+        x_GB = []
+        y_GB = []
+        x_2DB = []
+        y_2DB = []
+        x_NB = []
+        y_NB = []
+
+        if value < (df_data['Wave'].min() + 1):
+            df_signal = df_data.iloc[j:i]
+            df_signal = df_signal.sort_values(by=['Wave'])
+
+            wavelength = np.array(df_signal['Wave'])
+            intensity = np.array(df_signal['Intensity'])
+            despiked_spectrum = fixer(intensity, 10)
+            estimated_baselined = baseline_als(intensity, l, p)
+            baselined_spectrum = despiked_spectrum - np.absolute(estimated_baselined)
+            count = count + 1
+            #smoothed_spectrum = savgol_filter(baselined_spectrum, w, polyorder = order, deriv=0)
+            smoothed_spectrum = despiked_spectrum
+            for k, element in enumerate(wavelength):
+                if element >= 1250 and element < 1450:
+                    x_DB.append(element)
+                    y_DB.append(smoothed_spectrum[k]) 
+                if element >= 1480 and element < 1680:
+                    x_GB.append(element)
+                    y_GB.append(smoothed_spectrum[k])
+                if element >= 2650 and element < 2800:
+                    x_2DB.append(element)
+                    y_2DB.append(smoothed_spectrum[k])
+                if element >= 2800 and element < 3000:
+                    x_NB.append(element)
+                    y_NB.append(smoothed_spectrum[k])
+
+            I_D = y_DB[np.argmax(y_DB)]
+            I_G = y_GB[np.argmax(y_GB)]
+            I_2DB = y_2DB[np.argmax(y_2DB)]
+            I_N = y_NB[np.argmax(y_NB)]
+
+            peak_DB, _ = find_peaks(y_DB, prominence= 5)
+            peak_GB, _ = find_peaks(y_GB,prominence= 5)
+            peak_NB, _ = find_peaks(y_NB,prominence= 5)
+
+            prominences_DB = peak_prominences(y_DB, peak_DB)
+            max_prominence_DB = peak_DB[np.argmax(prominences_DB[0])]
+            prominences_GB = peak_prominences(y_GB, peak_GB)
+            max_prominence_GB = peak_GB[np.argmax(prominences_GB[0])]
+
+            peak_width_DB = peak_widths(y_DB, peak_DB, rel_height= 0.5, prominence_data= prominences_DB)
+            peak_width_GB = peak_widths(y_GB, peak_GB, rel_height= width_height, prominence_data= prominences_GB)
+
+
+            y_height = peak_width_DB[1][np.argmax(prominences_DB[0])]
+            x_width_min = remap(peak_width_DB[2][np.argmax(prominences_DB[0])], 0, len(x_DB), x_DB[0], x_DB[-1])
+            x_width_max = remap(peak_width_DB[3][np.argmax(prominences_DB[0])], 0, len(x_DB), x_DB[0], x_DB[-1])
+
+
+            y_height_GB = peak_width_GB[1][np.argmax(prominences_GB[0])]
+            x_width_min_GB = remap(peak_width_GB[2][np.argmax(prominences_GB[0])], 0, len(x_GB), x_GB[0], x_GB[-1])
+            x_width_max_GB = remap(peak_width_GB[3][np.argmax(prominences_GB[0])], 0, len(x_GB), x_GB[0], x_GB[-1])
+
+
+            if np.round(y_DB[max_prominence_DB],3) != np.round(y_DB[np.argmax(y_DB)], 3):
+                I_D = y_DB[max_prominence_DB]
+
+
+            if np.round(y_GB[max_prominence_GB],3) != np.round(y_GB[np.argmax(y_GB)], 3):
+                I_G = y_GB[max_prominence_GB]
+
+
+            ratio = I_D / I_G
+            d_width = np.round(x_width_max - x_width_min, 3)
+            g_width = np.round(x_width_max_GB - x_width_min_GB, 3)
+            ratio_full.append(ratio)
+            d_band.append(d_width)
+            g_band.append(g_width)
+
+            print(f'D band peak -- Intensity: {np.round(I_D, 3)}, Wave: {np.round(x_DB[max_prominence_DB],3)} \nG band peak -- Intensity: {np.round(I_G, 3)}, Wave: {np.round(x_GB[max_prominence_GB],3)}')
+            print(f'2DB band peak -- Intensity: {np.round(I_2DB, 3)}, Wave: {np.round(x_2DB[np.argmax(y_2DB)],3)} \nRatio: {np.round(ratio, 3)}')
+            print(f'Width band DB: {x_width_max - x_width_min}')
+            print(f'Width band GB: {x_width_max_GB - x_width_min_GB}')
+            print(count)
+
+            j = i + 1
+    return ratio_full, g_band, d_band
+
+def create_plot(ratio_full, file_name):
+    
+    sns.set_theme(style="white")
+
+    x_lim = [0, 1]
+    y_lim = [0 , 10]
+
+    av_ratio = np.round(np.average(ratio_full), 3)
+    std_ratio = np.round(np.std(np.round(ratio_full, 4)),3)
+
+    f, ax = plt.subplots(figsize=(8, 50))
+
+    sns.histplot(ratio_full, kde=True, alpha=0.25, kde_kws=dict(cut=10), binwidth=0.004, bins=20)
+    ax.axvline(av_ratio, linestyle = 'dashed', color = 'red')
+    ax.text(x_lim[1] - 0.1, y_lim[1] + 0.05,
+            f'Ratio \n Average: {av_ratio} \n STD: {std_ratio}',
+            fontsize = 12)
+    ax.grid(True)
+
+    ax.set_xlim(x_lim)
+    ax.set_title(f'{file_name}')
+    ax.set_ylim(y_lim)
+    
+    return f
+
 def file_analysis():
 
-    path_raman = path_raman_entry.get()
+    file_spectra_window = Toplevel(root)
+    root.lower()
+
+    file_spectra_window.title("File Analysis: Raman Spectre") 
+    canvas_file_spectre = Canvas(file_spectra_window, width = 1250,  height = 750) 
+    canvas_file_spectre.create_image( 0, 0, image = image_file_spectre_menu, anchor = "nw") 
+    
+
+    path_raman = str(path_raman_entry.get())
+    
+    #path_raman = path_raman.replace(['"',"'"], '')
 
     save_path = path_raman + '/Histograms/'
 
@@ -195,12 +340,24 @@ def file_analysis():
 
     file_name, df_data = dataset_creation(path_file)
 
-    file_spectra_window = Toplevel(root)
-    root.lower()
+    ratio_full, g_band, d_band = raman_spectre_analysis(file_name, df_data)
 
-    file_spectra_window.title("File Analysis: Raman Spectre") 
-    canvas_file_spectre = Canvas(file_spectra_window, width = 1250,  height = 600) 
-    canvas_file_spectre.create_image( 0, 0, image = image_file_spectre_menu, anchor = "nw") 
+    
+
+    
+    avg_gband = np.average(g_band)
+    g_band_out = [g_width for g_width in g_band if (g_width <= avg_gband * 0.4) or (g_width >= avg_gband * 1.4)]
+    g_band_out.sort(reverse= True)
+
+    fig = create_plot(ratio_full, file_name)
+
+    canvas_image = Canvas(canvas_file_spectre, width=100, height= 100)
+    canvas_file_spectre.create_window(50, 150, width= 750, height=450, anchor='nw', window= canvas_image)
+    canvas = FigureCanvasTkAgg(fig, master = canvas_image)   
+    canvas.draw() 
+  
+    # placing the canvas on the Tkinter window 
+    canvas.get_tk_widget().pack()
     canvas_file_spectre.pack(fill = "both", expand = True) 
 
 
