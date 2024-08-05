@@ -1,4 +1,5 @@
-from tkinter import Tk, Label, PhotoImage, Button, Canvas, Toplevel, Entry, messagebox, StringVar, OptionMenu, END, Text
+#from tkinter import Tk, Label, PhotoImage, Button, Canvas, Toplevel, Entry, messagebox, StringVar, OptionMenu, END, Text
+from tkinter import *
 import pandas as pd
 import numpy as np
 import os
@@ -13,6 +14,7 @@ import seaborn as sns
 import matplotlib.transforms as tr
 import re
 from string import ascii_letters
+
 
 def labels_entry_canvas(window, canvas, label_name, x, y):
     """Create a label linked to a user entry window
@@ -76,11 +78,14 @@ def saving_preprocess_file(path, new_file):
     """
     print(f"Saving process file")
     rsplit_path = path.rsplit(sep='/',maxsplit=1)
+    #rsplit_path = path.rsplit(sep='\\',maxsplit=1)
     print(rsplit_path)
     relative_path = rsplit_path[0] + '/process_file/'
+    #relative_path = rsplit_path[0] + '\\process_file\\'
     file = rsplit_path[1].split(sep='.')
     file_name = file[0] + "_process." + file[1]
     file_process_path = relative_path + "/" + file_name
+    #file_process_path = relative_path + "\\" + file_name
     file_process = open(file_process_path,'w')
     file_process.writelines(new_file)
     file_process.close
@@ -166,6 +171,7 @@ def remap(num, oldmin, oldmax, newmin, newmax):
 def dataset_creation(path_file):
 
     file = path_file.rsplit(sep= '/', maxsplit= 1)
+    #file = path_file.rsplit(sep= '\\', maxsplit= 1)
     file_name = file[1].replace('.txt', '',)
     file_n = open_preprocess_file(path_file)
     file_new = saving_preprocess_file(path_file, file_n)
@@ -184,6 +190,13 @@ def raman_spectre_analysis(file_name, df_data):
     ratio_full = []
     d_band = []
     g_band = []
+    wave_data = []
+    spectra_data = []
+    data_DB = []
+    data_GB = []
+    data_2DB = []
+    data_NB = []
+
 
     # Parameters for this case:
     l = 1000000 # smoothness
@@ -278,14 +291,16 @@ def raman_spectre_analysis(file_name, df_data):
             d_band.append(d_width)
             g_band.append(g_width)
 
-            print(f'D band peak -- Intensity: {np.round(I_D, 3)}, Wave: {np.round(x_DB[max_prominence_DB],3)} \nG band peak -- Intensity: {np.round(I_G, 3)}, Wave: {np.round(x_GB[max_prominence_GB],3)}')
-            print(f'2DB band peak -- Intensity: {np.round(I_2DB, 3)}, Wave: {np.round(x_2DB[np.argmax(y_2DB)],3)} \nRatio: {np.round(ratio, 3)}')
-            print(f'Width band DB: {x_width_max - x_width_min}')
-            print(f'Width band GB: {x_width_max_GB - x_width_min_GB}')
-            print(count)
+            wave_data.append(wavelength)
+            spectra_data.append(smoothed_spectrum)
+            data_DB.append([x_DB, y_DB, x_DB[max_prominence_DB], y_DB[max_prominence_DB], y_height, x_width_min, x_width_max])
+            data_GB.append([x_GB, y_GB, x_GB[max_prominence_GB], y_GB[max_prominence_GB], y_height_GB, x_width_min_GB, x_width_max_GB])
+            data_2DB.append([x_2DB, y_2DB, x_2DB[np.argmax(y_2DB)], y_2DB[np.argmax(y_2DB)]])
+            data_NB.append([x_NB, y_NB, x_NB[np.argmax(y_NB)], y_NB[np.argmax(y_NB)]])
 
             j = i + 1
-    return ratio_full, g_band, d_band
+    
+    return ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB
 
 def create_plot(ratio_full, file_name):
     
@@ -302,7 +317,7 @@ def create_plot(ratio_full, file_name):
     sns.histplot(ratio_full, kde=True, alpha=0.25, kde_kws=dict(cut=10), binwidth=0.004, bins=20)
     ax.axvline(av_ratio, linestyle = 'dashed', color = 'red')
     ax.text(x_lim[1] - 0.1, y_lim[1] + 0.05,
-            f'Ratio \n Average: {av_ratio} \n STD: {std_ratio}',
+            f'Ratio \nAverage: {av_ratio} \nSTD: {std_ratio}',
             fontsize = 12)
     ax.grid(True)
 
@@ -312,21 +327,140 @@ def create_plot(ratio_full, file_name):
     
     return f
 
+def create_individual_plot(i, ratio_full, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB):
+    f, ax = plt.subplots(figsize=(8, 50))
+
+    print_data = [f'Ratio: {np.round(ratio_full[i],3)}',
+                  f'D band peak ->Intensity: {np.round(data_DB[i][3], 3)} Wave: {np.round(data_DB[i][2],3)}',
+                  f'G band peak ->Intensity: {np.round(data_GB[i][3], 3)} Wave: {np.round(data_GB[i][2],3)}',
+                  f'2DB band peak ->Intensity: {np.round(data_2DB[i][3], 3)} Wave: {np.round(data_2DB[i][2],3)}',
+                  f'Width band DB: {np.round(data_DB[i][6] - data_DB[i][5], 3)}',
+                  f'Width band GB: {np.round(data_GB[i][6] - data_GB[i][5], 3)}']
+    
+    ax.plot(wave_data[i], spectra_data[i], 'k', label='Signal')
+    ax.plot(data_DB[i][0], data_DB[i][1])
+    ax.plot(data_DB[i][2], data_DB[i][3], "x",color='b',label='Peaks')
+    ax.hlines(data_DB[i][4], data_DB[i][5], data_DB[i][6], color = 'C3')  
+    ax.plot(data_GB[i][0], data_GB[i][1])
+    ax.plot(data_GB[i][2], data_GB[i][3], "x",color='b',label='Peaks')
+    ax.hlines(data_GB[i][4], data_GB[i][5], data_GB[i][6], color = 'C2')
+    ax.plot(data_2DB[i][0], data_2DB[i][1])
+    ax.plot(data_2DB[i][2], data_2DB[i][3], "x",color='b',label='Peaks')
+    ax.plot(data_NB[i][0], data_NB[i][1])
+    ax.plot(data_NB[i][2], data_NB[i][3], "x",color='b',label='Peaks')
+    ax.set_ylabel('Intensity')
+    ax.set_xlabel('Wavelenght')
+    ax.grid(True)
+
+    return f, print_data
+
+
+def individuals():
+    global counter_ind
+
+    def plot_graph(i):
+
+        fig_ind, print_data = create_individual_plot(i, ratio_full, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB)
+        T = Text(file_individual_window, width= 55, height= 6, font=("Segoe UI Variable Text Semiligh", 12))
+        canvas_file_individual.create_window(720, 670, window= T)
+
+        for item in print_data:
+            T.insert(END, item + '\n')
+        
+        canvas_image_ind = Canvas(canvas_file_individual, width=100, height= 100)
+        canvas_file_individual.create_window(300, 100, width= 750, height=500, anchor='nw', window= canvas_image_ind)
+        canvas_ind = FigureCanvasTkAgg(fig_ind, master = canvas_image_ind)   
+        canvas_ind.draw() 
+        toolbar_ind = NavigationToolbar2Tk(canvas_ind, canvas_image_ind)
+        toolbar_ind.update()
+        canvas_ind.get_tk_widget().pack()
+
+    def individual_down():
+    
+        counter_ind.set(counter_ind.get() - 1)
+        plot_graph(counter_ind.get())
+
+
+    def individual_up():
+    
+        counter_ind.set(counter_ind.get() + 1)
+        plot_graph(counter_ind.get())
+
+    counter_ind = IntVar()
+    counter_ind.set(0)
+
+    file_individual_window = Toplevel(root)
+    root.lower
+    file_individual_window.title("Individual Raman Spectra")
+    canvas_file_individual = Canvas(file_individual_window, width = 1250,  height = 740) 
+    canvas_file_individual.create_image( 0, 0, image = image_file_spectre_menu, anchor = "nw")
+
+    canvas_file_individual.create_text(100, 50, text = f"Sample Number"
+                        , font=("Segoe UI Variable Text Semibold", 20), fill='black'
+                        , width= 500)
+
+    label_count = Label(file_individual_window, width=7, textvariable= counter_ind, font= ("Segoe UI Variable Text Semibold", 20))
+    canvas_file_individual.create_window(150, 100, window= label_count)
+
+    #file_name, df_data = dataset_creation(path_file)
+    #ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
+    plot_graph(counter_ind.get())
+
+    
+    button_previous = Button(canvas_file_individual, text = "Previous", font=("Segoe UI Variable Text Semiligh", 18), command= individual_down)
+    button_previous_canvas = canvas_file_individual.create_window(250, 650, anchor = "nw", window = button_previous)
+
+    button_next = Button(canvas_file_individual, text = "Next", font=("Segoe UI Variable Text Semiligh", 18), command= individual_up)
+    button_next_canvas = canvas_file_individual.create_window(1050, 650, anchor = "nw", window = button_next)
+
+
+    print(path_file)
+    canvas_file_individual.pack(fill = "both", expand = True) 
+
+
+    
+
+def next_figure():
+    
+    root.counter_file +=1 
+    print(path_file)
+    file_analysis()
+
 def file_analysis():
+
+    global path_file, files, path_raman
+    global ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB
+
+
+    def average_figures():
+
+        average_file = []
+
+        for file in files:
+            path_file = path_raman + '/' + file
+            file_name, df_data = dataset_creation(path_file)
+            ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
+            average_file.append(ratio_full)
+
+        avg_file = np.round(np.average(average_file),4)
+        std_file = np.round(np.std(average_file),4)
+        canvas_file_spectre.create_text(1020, 530, text = f"Average files: {avg_file}\nStd files: {std_file}"
+                        , font=("Segoe UI Variable Text Semibold", 20), fill='black'
+                        , width= 500)
+
 
     file_spectra_window = Toplevel(root)
     root.lower()
 
-    file_spectra_window.title("File Analysis: Raman Spectre") 
-    canvas_file_spectre = Canvas(file_spectra_window, width = 1250,  height = 750) 
+    file_spectra_window.title("File Analysis: Raman Spectra") 
+    canvas_file_spectre = Canvas(file_spectra_window, width = 1250,  height = 725) 
     canvas_file_spectre.create_image( 0, 0, image = image_file_spectre_menu, anchor = "nw") 
-    
 
     path_raman = str(path_raman_entry.get())
+    path_raman = path_raman.replace('"', '')
+    path_raman = path_raman.replace("'",'')
+    print(path_raman, type(path_raman))
     
-    #path_raman = path_raman.replace(['"',"'"], '')
-
-    save_path = path_raman + '/Histograms/'
 
     contents = os.listdir(path_raman)
     files = []
@@ -336,13 +470,13 @@ def file_analysis():
             files.append(item)
     
     
-    path_file = path_raman + '/' + files[0]
+    
+    path_file = path_raman + '/' + files[root.counter_file]
 
     file_name, df_data = dataset_creation(path_file)
 
-    ratio_full, g_band, d_band = raman_spectre_analysis(file_name, df_data)
+    ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
 
-    
 
     
     avg_gband = np.average(g_band)
@@ -352,21 +486,48 @@ def file_analysis():
     fig = create_plot(ratio_full, file_name)
 
     canvas_image = Canvas(canvas_file_spectre, width=100, height= 100)
-    canvas_file_spectre.create_window(50, 150, width= 750, height=450, anchor='nw', window= canvas_image)
+    canvas_file_spectre.create_window(50, 200, width= 750, height=450, anchor='nw', window= canvas_image)
     canvas = FigureCanvasTkAgg(fig, master = canvas_image)   
     canvas.draw() 
-  
+    toolbar = NavigationToolbar2Tk(canvas, canvas_image)
+    toolbar.update()
+
+    canvas_file_spectre.create_text(220, 50, text = f"Histogram file {file_name}"
+                        , font=("Segoe UI Variable Text Semibold", 20), fill='black'
+                        , width= 500)
+    
+    canvas_file_spectre.create_text(600, 50, text = f"{root.counter_file + 1}/ {len(files)}"
+                        , font=("Segoe UI Variable Text Semibold", 20), fill='black'
+                        , width= 500)
+
+
+    #button_update = Button(canvas_file_spectre, text = "Update", font=("Segoe UI Variable Text Semiligh", 18))
+    #button_update_canvas = canvas_file_spectre.create_window(950, 250, anchor = "nw", window = button_update)
+
+    button_individual = Button(canvas_file_spectre, text = "Individual", font=("Segoe UI Variable Text Semiligh", 18), command= individuals)
+    button_individual_canvas = canvas_file_spectre.create_window(950, 250, anchor = "nw", window = button_individual) 
+
+    button_next_file = Button(canvas_file_spectre, text = "Next File", font=("Segoe UI Variable Text Semiligh", 18), command= next_figure)
+    button_next_file_canvas = canvas_file_spectre.create_window(950, 350, anchor = "nw", window = button_next_file) 
+
+    button_average = Button(canvas_file_spectre, text = "Average", font=("Segoe UI Variable Text Semiligh", 18), command= average_figures)
+    button_average_canvas = canvas_file_spectre.create_window(950, 450, anchor = "nw", window = button_average)  
+    print(root.counter_file)
     # placing the canvas on the Tkinter window 
     canvas.get_tk_widget().pack()
     canvas_file_spectre.pack(fill = "both", expand = True) 
 
-
     return
+
 
 root = Tk()
 root.title("Formulation Lab: Raman Spectra")
 
+root.counter_file = 0
+
+
 path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
+#path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
 
 image_template = PhotoImage(file= path + 'concretene_image1.png')
 image_file_spectre_menu = PhotoImage(file= path + 'concretene_image2.png')
