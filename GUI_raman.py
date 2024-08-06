@@ -1,4 +1,3 @@
-#from tkinter import Tk, Label, PhotoImage, Button, Canvas, Toplevel, Entry, messagebox, StringVar, OptionMenu, END, Text
 from tkinter import *
 import pandas as pd
 import numpy as np
@@ -14,6 +13,7 @@ import seaborn as sns
 import matplotlib.transforms as tr
 import re
 from string import ascii_letters
+import sys
 
 
 def labels_entry_canvas(window, canvas, label_name, x, y):
@@ -77,15 +77,21 @@ def saving_preprocess_file(path, new_file):
     -------
     """
     print(f"Saving process file")
-    rsplit_path = path.rsplit(sep='/',maxsplit=1)
-    #rsplit_path = path.rsplit(sep='\\',maxsplit=1)
+    #rsplit_path = path.rsplit(sep='/',maxsplit=1)
+    rsplit_path = path.rsplit(sep='\\',maxsplit=1)
     print(rsplit_path)
-    relative_path = rsplit_path[0] + '/process_file/'
-    #relative_path = rsplit_path[0] + '\\process_file\\'
+    #relative_path = rsplit_path[0] + '/process_file/'
+    try:
+        relative_path = rsplit_path[0] + '\\process_file\\'
+        os.mkdir(relative_path)
+    except:
+        #print(path_folder)
+        print('Already Created')
+    
     file = rsplit_path[1].split(sep='.')
     file_name = file[0] + "_process." + file[1]
-    file_process_path = relative_path + "/" + file_name
-    #file_process_path = relative_path + "\\" + file_name
+    #file_process_path = relative_path + "/" + file_name
+    file_process_path = relative_path + "\\" + file_name
     file_process = open(file_process_path,'w')
     file_process.writelines(new_file)
     file_process.close
@@ -170,8 +176,8 @@ def remap(num, oldmin, oldmax, newmin, newmax):
 
 def dataset_creation(path_file):
 
-    file = path_file.rsplit(sep= '/', maxsplit= 1)
-    #file = path_file.rsplit(sep= '\\', maxsplit= 1)
+    #file = path_file.rsplit(sep= '/', maxsplit= 1)
+    file = path_file.rsplit(sep= '\\', maxsplit= 1)
     file_name = file[1].replace('.txt', '',)
     file_n = open_preprocess_file(path_file)
     file_new = saving_preprocess_file(path_file, file_n)
@@ -302,25 +308,40 @@ def raman_spectre_analysis(file_name, df_data):
     
     return ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB
 
-def create_plot(ratio_full, file_name):
+def create_plot(file_name, type = 'Ratio'):
     
     sns.set_theme(style="white")
 
-    x_lim = [0, 1]
-    y_lim = [0 , 10]
+
 
     av_ratio = np.round(np.average(ratio_full), 3)
     std_ratio = np.round(np.std(np.round(ratio_full, 4)),3)
+    av_width = np.round(np.average(g_band), 3)
+    std_width = np.round(np.std(g_band), 3)
 
     f, ax = plt.subplots(figsize=(8, 50))
 
-    sns.histplot(ratio_full, kde=True, alpha=0.25, kde_kws=dict(cut=10), binwidth=0.004, bins=20)
-    ax.axvline(av_ratio, linestyle = 'dashed', color = 'red')
-    ax.text(x_lim[1] - 0.1, y_lim[1] + 0.05,
-            f'Ratio \nAverage: {av_ratio} \nSTD: {std_ratio}',
-            fontsize = 12)
-    ax.grid(True)
+    if type == 'Ratio':
 
+        x_lim = [0, 1.5]
+        y_lim = [0 , 10]
+        sns.histplot(ratio_full, kde=True, alpha=0.25, kde_kws=dict(cut=10), binwidth=0.004, bins=20)
+        ax.axvline(av_ratio, linestyle = 'dashed', color = 'red')
+        ax.text(x_lim[1] - 0.1, y_lim[1] + 0.05,
+                f'Ratio \nAverage: {av_ratio} \nSTD: {std_ratio}',
+                fontsize = 12)
+    
+    if type == 'G band':
+        x_lim = [0, 120]
+        y_lim = [0 , 10]
+        sns.histplot(g_band, kde=True, alpha=0.25, kde_kws=dict(cut=10), binwidth=1, bins=20)
+        ax.axvline(np.average(g_band), linestyle = 'dashed', color = 'red')
+        ax.text(x_lim[1] - 20, y_lim[1] + 0.1,
+        f'G Band Width \n Average: {av_width}\nSTD width : {std_width}',
+        fontsize = 12)
+    
+    
+    ax.grid(True)
     ax.set_xlim(x_lim)
     ax.set_title(f'{file_name}')
     ax.set_ylim(y_lim)
@@ -402,8 +423,6 @@ def individuals():
     label_count = Label(file_individual_window, width=7, textvariable= counter_ind, font= ("Segoe UI Variable Text Semibold", 20))
     canvas_file_individual.create_window(150, 100, window= label_count)
 
-    #file_name, df_data = dataset_creation(path_file)
-    #ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
     plot_graph(counter_ind.get())
 
     
@@ -413,17 +432,12 @@ def individuals():
     button_next = Button(canvas_file_individual, text = "Next", font=("Segoe UI Variable Text Semiligh", 18), command= individual_up)
     button_next_canvas = canvas_file_individual.create_window(1050, 650, anchor = "nw", window = button_next)
 
-
-    print(path_file)
     canvas_file_individual.pack(fill = "both", expand = True) 
 
-
-    
 
 def next_figure():
     
     root.counter_file +=1 
-    print(path_file)
     file_analysis()
 
 def file_analysis():
@@ -431,21 +445,45 @@ def file_analysis():
     global path_file, files, path_raman
     global ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB
 
+    def histogram_g_band():
+        fig = create_plot(file_name, 'G band')
+        canvas_image = Canvas(canvas_file_spectre, width=100, height= 100)
+        canvas_file_spectre.create_window(50, 200, width= 750, height=450, anchor='nw', window= canvas_image)
+        canvas = FigureCanvasTkAgg(fig, master = canvas_image)   
+        canvas.draw() 
+        toolbar = NavigationToolbar2Tk(canvas, canvas_image)
+        toolbar.update()
+        canvas.get_tk_widget().pack()
+
+    def histogram_ratio():
+        fig = create_plot(file_name, 'Ratio')
+        canvas_image = Canvas(canvas_file_spectre, width=100, height= 100)
+        canvas_file_spectre.create_window(50, 200, width= 750, height=450, anchor='nw', window= canvas_image)
+        canvas = FigureCanvasTkAgg(fig, master = canvas_image)   
+        canvas.draw() 
+        toolbar = NavigationToolbar2Tk(canvas, canvas_image)
+        toolbar.update()
+        canvas.get_tk_widget().pack()
 
     def average_figures():
 
-        average_file = []
+        ratio_complete = []
+        g_band_complete = []
 
         for file in files:
-            path_file = path_raman + '/' + file
+            path_file = path_raman + '\\' + file
             file_name, df_data = dataset_creation(path_file)
             ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
-            average_file.append(ratio_full)
+            ratio_complete.append(ratio_full)
+            g_band_complete.append(g_band)
 
-        avg_file = np.round(np.average(average_file),4)
-        std_file = np.round(np.std(average_file),4)
-        canvas_file_spectre.create_text(1020, 530, text = f"Average files: {avg_file}\nStd files: {std_file}"
-                        , font=("Segoe UI Variable Text Semibold", 20), fill='black'
+        avg_ratio_file = np.round(np.average(ratio_complete),4)
+        std_ratio_file = np.round(np.std(ratio_complete),4)
+        avg_g_file = np.round(np.average(g_band_complete),4)
+        std_g_file = np.round(np.std(g_band_complete),4)
+        canvas_file_spectre.create_text(1020, 600 
+                        , text = f"Average Ratio: {avg_ratio_file}\nStd Ratio: {std_ratio_file}\nAverage G width: {avg_g_file}\nSTD G width: {std_g_file}"
+                        , font=("Segoe UI Variable Text Semiligh", 18), fill='black'
                         , width= 500)
 
 
@@ -471,7 +509,7 @@ def file_analysis():
     
     
     
-    path_file = path_raman + '/' + files[root.counter_file]
+    path_file = path_raman + '\\' + files[root.counter_file]
 
     file_name, df_data = dataset_creation(path_file)
 
@@ -483,7 +521,7 @@ def file_analysis():
     g_band_out = [g_width for g_width in g_band if (g_width <= avg_gband * 0.4) or (g_width >= avg_gband * 1.4)]
     g_band_out.sort(reverse= True)
 
-    fig = create_plot(ratio_full, file_name)
+    fig = create_plot(file_name, 'Ratio')
 
     canvas_image = Canvas(canvas_file_spectre, width=100, height= 100)
     canvas_file_spectre.create_window(50, 200, width= 750, height=450, anchor='nw', window= canvas_image)
@@ -501,9 +539,6 @@ def file_analysis():
                         , width= 500)
 
 
-    #button_update = Button(canvas_file_spectre, text = "Update", font=("Segoe UI Variable Text Semiligh", 18))
-    #button_update_canvas = canvas_file_spectre.create_window(950, 250, anchor = "nw", window = button_update)
-
     button_individual = Button(canvas_file_spectre, text = "Individual", font=("Segoe UI Variable Text Semiligh", 18), command= individuals)
     button_individual_canvas = canvas_file_spectre.create_window(950, 250, anchor = "nw", window = button_individual) 
 
@@ -512,22 +547,30 @@ def file_analysis():
 
     button_average = Button(canvas_file_spectre, text = "Average", font=("Segoe UI Variable Text Semiligh", 18), command= average_figures)
     button_average_canvas = canvas_file_spectre.create_window(950, 450, anchor = "nw", window = button_average)  
+
+    button_g_band = Button(canvas_file_spectre, text = "G Band", font=("Segoe UI Variable Text Semiligh", 18), command= histogram_g_band)
+    button_g_band_canvas = canvas_file_spectre.create_window(80, 130, anchor = "nw", window = button_g_band) 
+
+    button_ratio = Button(canvas_file_spectre, text = "Ratio", font=("Segoe UI Variable Text Semiligh", 18), command= histogram_ratio)
+    button_ratio_canvas = canvas_file_spectre.create_window(700, 130, anchor = "nw", window = button_ratio) 
+
     print(root.counter_file)
     # placing the canvas on the Tkinter window 
     canvas.get_tk_widget().pack()
     canvas_file_spectre.pack(fill = "both", expand = True) 
 
-    return
-
+def exit():
+    root.destroy()
+    sys.exit()
 
 root = Tk()
 root.title("Formulation Lab: Raman Spectra")
 
 root.counter_file = 0
+root.protocol("WM_DELETE_WINDOW", lambda:exit())
 
-
-path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
-#path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
+#path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
+path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
 
 image_template = PhotoImage(file= path + 'concretene_image1.png')
 image_file_spectre_menu = PhotoImage(file= path + 'concretene_image2.png')
@@ -541,21 +584,23 @@ canvas_home.create_image(0, 0, image = image_template, anchor = "nw")
   
 # Add Text 
 canvas_home.create_text(600, 50, text = "Welcome"
-                        ,font=("Segoe UI Variable Text Semibold", 40),fill='#fff')
+                        , font=("Segoe UI Variable Text Semibold", 40), fill='#fff')
 canvas_home.create_text(600, 90, text = "Raman Spectra Analysis Tool"
-                        ,font=("Segoe UI Variable Text Semibold", 40),fill='#fff') 
+                        , font=("Segoe UI Variable Text Semibold", 40), fill='#fff') 
 
+canvas_home.create_text(120, 200, text = "Path"
+                        , font=("Segoe UI Variable Text Semiligh", 18), fill='#fff')
 
-path_raman_label = Label(root, text='Path', font=("Segoe UI Variable Text Semiligh", 18), background = '#fff')
 path_raman_entry = Entry(root)
-canvas_home.create_window(100, 200, window=path_raman_label)
 canvas_home.create_window(100 + 250, 200, width = 350, window=path_raman_entry)
 
 # Create Buttons 
 button1 = Button(root, text = "Start", font=("Segoe UI Variable Text Semiligh", 18),command = file_analysis) 
+#button2 = Button(root, text = "Close", font=("Segoe UI Variable Text Semiligh", 18),command = exit) 
 
 # Display Buttons 
-button1_canvas = canvas_home.create_window(300, 250, anchor = "nw", window = button1) 
+button1_canvas = canvas_home.create_window(300, 220, anchor = "nw", window = button1)
+#button2_canvas = canvas_home.create_window(600, 220, anchor = "nw", window = button2) 
 
 # Execute tkinter 
 root.mainloop() 
