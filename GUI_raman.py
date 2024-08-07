@@ -15,6 +15,7 @@ import re
 from string import ascii_letters
 import sys
 
+user_path = os.path.expanduser('~')
 
 def labels_entry_canvas(window, canvas, label_name, x, y):
     """Create a label linked to a user entry window
@@ -569,11 +570,26 @@ root.title("Formulation Lab: Raman Spectra")
 root.counter_file = 0
 root.protocol("WM_DELETE_WINDOW", lambda:exit())
 
-#path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
-path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
 
-image_template = PhotoImage(file= path + 'concretene_image1.png')
-image_file_spectre_menu = PhotoImage(file= path + 'concretene_image2.png')
+try:
+    concretene_path = r"\Concretene\Concretene Site - Formulation lab\Software\Raman_analysis\Documents\\"
+    path_file = user_path + concretene_path
+    image_template = PhotoImage(file= path_file + 'concretene_image1.png')
+    image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
+except:
+    concretene_path = r"\OneDrive - Concretene\Formulation lab\Software\Raman_analysis\Documents\\"
+    #concretene_path = r"\OneDrive - Concretene\Formulation - backup\Documents\\"
+    #concretene_path = '/OneDrive/Formulation-backup/Documents/'
+    path_file = user_path + concretene_path
+    #image_template = PhotoImage(file=path_file + "imag\\" + "Concretene_template.png")
+    image_template = PhotoImage(file= path_file + 'concretene_image1.png')
+    image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
+
+#path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
+#path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
+print(path_file)
+
+#image_file_spectre_menu = PhotoImage(file= path + 'concretene_image2.png')
 
 # Create Canvas 
 canvas_home = Canvas(root, width = 1200,  height = 300) 
