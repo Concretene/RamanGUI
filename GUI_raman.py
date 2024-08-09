@@ -78,12 +78,12 @@ def saving_preprocess_file(path, new_file):
     -------
     """
     print(f"Saving process file")
-    #rsplit_path = path.rsplit(sep='/',maxsplit=1)
-    rsplit_path = path.rsplit(sep='\\',maxsplit=1)
+    rsplit_path = path.rsplit(sep='/',maxsplit=1)
+    #rsplit_path = path.rsplit(sep='\\',maxsplit=1)
     print(rsplit_path)
     #relative_path = rsplit_path[0] + '/process_file/'
     try:
-        relative_path = rsplit_path[0] + '\\process_file\\'
+        relative_path = rsplit_path[0] + '/process_file/'
         os.mkdir(relative_path)
     except:
         #print(path_folder)
@@ -91,8 +91,8 @@ def saving_preprocess_file(path, new_file):
     
     file = rsplit_path[1].split(sep='.')
     file_name = file[0] + "_process." + file[1]
-    #file_process_path = relative_path + "/" + file_name
-    file_process_path = relative_path + "\\" + file_name
+    file_process_path = relative_path + "/" + file_name
+    #file_process_path = relative_path + "\\" + file_name
     file_process = open(file_process_path,'w')
     file_process.writelines(new_file)
     file_process.close
@@ -115,13 +115,10 @@ def get_headers(path):
         lines = file.readlines()
         file_head = lines[0]
         strip_file_head = file_head.strip()
-        #print(strip_file_head)
         replace_file_head = strip_file_head.replace("#","")
-        #print(replace_file_head)
         replace_file_head = replace_file_head.replace("\t",",")
         replace_file_head = replace_file_head.replace(",,",",")
         split_file_head = replace_file_head.split(sep=",")
-        #print(split_file_head)
         return split_file_head
 
 def baseline_als(y, lam, p, niter=100):
@@ -177,8 +174,8 @@ def remap(num, oldmin, oldmax, newmin, newmax):
 
 def dataset_creation(path_file):
 
-    #file = path_file.rsplit(sep= '/', maxsplit= 1)
-    file = path_file.rsplit(sep= '\\', maxsplit= 1)
+    file = path_file.rsplit(sep= '/', maxsplit= 1)
+    #file = path_file.rsplit(sep= '\\', maxsplit= 1)
     file_name = file[1].replace('.txt', '',)
     file_n = open_preprocess_file(path_file)
     file_new = saving_preprocess_file(path_file, file_n)
@@ -472,7 +469,7 @@ def file_analysis():
         g_band_complete = []
 
         for file in files:
-            path_file = path_raman + '\\' + file
+            path_file = path_raman + '/' + file
             file_name, df_data = dataset_creation(path_file)
             ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
             ratio_complete.append(ratio_full)
@@ -510,7 +507,7 @@ def file_analysis():
     
     
     
-    path_file = path_raman + '\\' + files[root.counter_file]
+    path_file = path_raman + '/' + files[root.counter_file]
 
     file_name, df_data = dataset_creation(path_file)
 
@@ -572,12 +569,14 @@ root.protocol("WM_DELETE_WINDOW", lambda:exit())
 
 
 try:
-    concretene_path = r"\Concretene\Concretene Site - Formulation lab\Software\Raman_analysis\Documents\\"
+    #concretene_path = r"\Concretene\Concretene Site - Formulation lab\Software\Raman_analysis\Documents\\"
+    concretene_path = '/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
     path_file = user_path + concretene_path
     image_template = PhotoImage(file= path_file + 'concretene_image1.png')
     image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
 except:
-    concretene_path = r"\OneDrive - Concretene\Formulation lab\Software\Raman_analysis\Documents\\"
+    concretene_path = '/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
+    #concretene_path = r"\OneDrive - Concretene\Formulation lab\Software\Raman_analysis\Documents\\"
     #concretene_path = r"\OneDrive - Concretene\Formulation - backup\Documents\\"
     #concretene_path = '/OneDrive/Formulation-backup/Documents/'
     path_file = user_path + concretene_path
