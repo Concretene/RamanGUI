@@ -14,6 +14,7 @@ import matplotlib.transforms as tr
 import re
 from string import ascii_letters
 import sys
+from pathlib import Path
 
 user_path = os.path.expanduser('~')
 
@@ -568,26 +569,27 @@ root.counter_file = 0
 root.protocol("WM_DELETE_WINDOW", lambda:exit())
 
 
-try:
+#try:
     #concretene_path = r"\Concretene\Concretene Site - Formulation lab\Software\Raman_analysis\Documents\\"
-    concretene_path = '/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
-    path_file = user_path + concretene_path
-    image_template = PhotoImage(file= path_file + 'concretene_image1.png')
-    image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
-except:
-    concretene_path = '/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
-    #concretene_path = r"\OneDrive - Concretene\Formulation lab\Software\Raman_analysis\Documents\\"
-    #concretene_path = r"\OneDrive - Concretene\Formulation - backup\Documents\\"
-    #concretene_path = '/OneDrive/Formulation-backup/Documents/'
-    path_file = user_path + concretene_path
-    #image_template = PhotoImage(file=path_file + "imag\\" + "Concretene_template.png")
-    image_template = PhotoImage(file= path_file + 'concretene_image1.png')
-    image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
+concretene_path = str(Path().absolute()) + '/Documents/'
+path_file = concretene_path
+image_template = PhotoImage(file= path_file + 'concretene_image1.png')
+image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
+#except:
+#    concretene_path = '/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
+#    #concretene_path = r"\OneDrive - Concretene\Formulation lab\Software\Raman_analysis\Documents\\"
+#    #concretene_path = r"\OneDrive - Concretene\Formulation - backup\Documents\\"
+#    #concretene_path = '/OneDrive/Formulation-backup/Documents/'
+#    path_file = user_path + concretene_path
+#    #image_template = PhotoImage(file=path_file + "imag\\" + "Concretene_template.png")
+#    image_template = PhotoImage(file= path_file + 'concretene_image1.png')
+#    image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
 
 #path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
 #path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
-print(path_file)
-
+#print(path_file)
+print(Path.cwd())
+print(Path().absolute())
 #image_file_spectre_menu = PhotoImage(file= path + 'concretene_image2.png')
 
 # Create Canvas 
