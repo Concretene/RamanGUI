@@ -79,12 +79,12 @@ def saving_preprocess_file(path, new_file):
     -------
     """
     print(f"Saving process file")
-    rsplit_path = path.rsplit(sep='/',maxsplit=1)
-    #rsplit_path = path.rsplit(sep='\\',maxsplit=1)
+    #rsplit_path = path.rsplit(sep='/',maxsplit=1)
+    rsplit_path = path.rsplit(sep='\\',maxsplit=1)
     print(rsplit_path)
     #relative_path = rsplit_path[0] + '/process_file/'
     try:
-        relative_path = rsplit_path[0] + '/process_file/'
+        relative_path = rsplit_path[0] + '\\process_file\\'
         os.mkdir(relative_path)
     except:
         #print(path_folder)
@@ -92,8 +92,8 @@ def saving_preprocess_file(path, new_file):
     
     file = rsplit_path[1].split(sep='.')
     file_name = file[0] + "_process." + file[1]
-    file_process_path = relative_path + "/" + file_name
-    #file_process_path = relative_path + "\\" + file_name
+    #file_process_path = relative_path + "/" + file_name
+    file_process_path = relative_path + "\\" + file_name
     file_process = open(file_process_path,'w')
     file_process.writelines(new_file)
     file_process.close
@@ -175,8 +175,8 @@ def remap(num, oldmin, oldmax, newmin, newmax):
 
 def dataset_creation(path_file):
 
-    file = path_file.rsplit(sep= '/', maxsplit= 1)
-    #file = path_file.rsplit(sep= '\\', maxsplit= 1)
+    #file = path_file.rsplit(sep= '/', maxsplit= 1)
+    file = path_file.rsplit(sep= '\\', maxsplit= 1)
     file_name = file[1].replace('.txt', '',)
     file_n = open_preprocess_file(path_file)
     file_new = saving_preprocess_file(path_file, file_n)
@@ -470,7 +470,7 @@ def file_analysis():
         g_band_complete = []
 
         for file in files:
-            path_file = path_raman + '/' + file
+            path_file = path_raman + '\\' + file
             file_name, df_data = dataset_creation(path_file)
             ratio_full, g_band, d_band, wave_data, spectra_data, data_DB, data_GB, data_2DB, data_NB = raman_spectre_analysis(file_name, df_data)
             ratio_complete.append(ratio_full)
@@ -508,7 +508,7 @@ def file_analysis():
     
     
     
-    path_file = path_raman + '/' + files[root.counter_file]
+    path_file = path_raman + '\\' + files[root.counter_file]
 
     file_name, df_data = dataset_creation(path_file)
 
@@ -571,7 +571,8 @@ root.protocol("WM_DELETE_WINDOW", lambda:exit())
 
 #try:
     #concretene_path = r"\Concretene\Concretene Site - Formulation lab\Software\Raman_analysis\Documents\\"
-concretene_path = str(Path().absolute()) + '/Documents/'
+#concretene_path = str(Path().absolute()) + '/Documents/'
+concretene_path = str(Path().absolute()) + '\\Documents\\'
 path_file = concretene_path
 image_template = PhotoImage(file= path_file + 'concretene_image1.png')
 image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
@@ -588,8 +589,7 @@ image_file_spectre_menu = PhotoImage(file= path_file + 'concretene_image2.png')
 #path = '/home/jessicamaldonado/OneDrive/Documents/ws_concretene/python_scripts/RamanGUI/Documents/'
 #path = r"C:\Users\JessicaMaldo_p3rvdgi\OneDrive - Concretene\Documents\ws_concretene\python_scripts\RamanGUI\Documents\\"
 #print(path_file)
-print(Path.cwd())
-print(Path().absolute())
+
 #image_file_spectre_menu = PhotoImage(file= path + 'concretene_image2.png')
 
 # Create Canvas 
